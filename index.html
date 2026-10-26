@@ -89,7 +89,7 @@ button { cursor: pointer; }
   border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 15px;
 }
 .chk input { width: 20px; height: 20px; accent-color: var(--fg); margin: 0; }
-#go {
+#go, #unlock {
   background: var(--fg); color: var(--bg); border: 0; border-radius: 10px;
   padding: 16px; font-size: 18px; font-weight: 700;
 }
@@ -170,15 +170,110 @@ button { cursor: pointer; }
 #play svg { width: 22px; height: 22px; fill: currentColor; }
 body.voice #speedGrp { display: none; }
 
+#lessonTag {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  max-width: 55%;
+  background: rgba(18, 19, 21, .85); border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 12px; font-size: 13px; color: var(--muted); pointer-events: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#doneBtn { background: var(--tally); color: var(--fg); font-weight: 700; padding: 0 14px; }
+
+/* ---------- Senha e lista de aulas ---------- */
+.page {
+  min-height: 100%;
+  padding-block: 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 720px;
+  margin: 0 auto;
+}
+#lock { display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+#lock p { margin: 0; color: var(--muted); line-height: 1.5; }
+#pass {
+  width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px; font-size: 18px;
+}
+#lockMsg { color: var(--tally); min-height: 1.4em; font-size: 14px; }
+.wide { width: 100%; }
+#course { display: flex; flex-direction: column; gap: 14px; }
+.sum { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.sum strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.sum span { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.meter { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--tally); }
+.mod { display: grid; gap: 6px; }
+.mod h2 {
+  margin: 10px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+  display: flex; justify-content: space-between; gap: 8px;
+}
+.lesson {
+  display: grid; grid-template-columns: 48px 1fr; align-items: stretch;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+}
+.lesson .tick {
+  border: 0; border-right: 1px solid var(--line); background: none; display: flex; align-items: center; justify-content: center;
+}
+.lesson .tick::before {
+  content: ""; width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 6px; box-sizing: border-box;
+}
+.lesson.done .tick::before {
+  border-color: var(--tally); background: var(--tally)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat;
+}
+.lesson .open {
+  border: 0; background: none; text-align: left; padding: 12px 14px; display: grid; gap: 4px; min-width: 0;
+}
+.lesson .t { font-size: 16px; line-height: 1.3; }
+.lesson .t b { font-variant-numeric: tabular-nums; margin-right: 6px; }
+.lesson .m { font-size: 13px; color: var(--muted); }
+.lesson .prep { font-size: 13px; color: var(--tally); }
+.lesson.done .t { color: var(--muted); text-decoration: line-through; }
+.lesson.last { border-color: var(--fg); }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; }
+
 @media (prefers-reduced-motion: reduce) { #bar { transition: none; } #mic.live::before { animation: none; } }
 </style>
 </head>
 <body>
 
+<section id="lock" class="page" hidden>
+  <div class="head"><h1>Prompter de Bolso</h1></div>
+  <p>Os roteiros do curso ficam protegidos. Digite a senha uma vez e este celular lembra dela.</p>
+  <form id="lockForm">
+    <input id="pass" type="password" autocomplete="current-password" placeholder="Senha do curso" aria-label="Senha do curso">
+  </form>
+  <div id="lockMsg" role="status"></div>
+  <button id="unlock" class="wide" type="submit" form="lockForm">Abrir aulas</button>
+  <button class="ghost" id="skipLock" type="button">Usar sem o curso (texto livre)</button>
+</section>
+
+<section id="course" class="page" hidden>
+  <div class="head">
+    <h1>Gravação do curso</h1>
+    <button class="ghost" id="toFree" type="button">Texto livre</button>
+  </div>
+  <div class="sum">
+    <strong id="sumCount"></strong>
+    <div class="meter"><i id="sumBar"></i></div>
+    <span id="sumTime"></span>
+  </div>
+  <div class="tools">
+    <label class="chk"><input type="checkbox" id="hideDone"> Esconder as gravadas</label>
+  </div>
+  <div id="list"></div>
+  <p class="hint">Toque no nome da aula para abrir no teleprompter. Toque no quadrado para marcar ou desmarcar como gravada. As marcações ficam salvas neste celular.</p>
+</section>
+
 <section id="editor">
   <div class="head">
     <h1>Prompter de Bolso</h1>
-    <button class="ghost" id="clear" type="button">Limpar texto</button>
+    <div class="toggles">
+      <button class="ghost" id="toCourse" type="button" hidden>Aulas</button>
+      <button class="ghost" id="clear" type="button">Limpar texto</button>
+    </div>
   </div>
 
   <textarea id="text" placeholder="Cole o roteiro aqui (toque e segure, depois Colar)"></textarea>
@@ -218,9 +313,11 @@ body.voice #speedGrp { display: none; }
   <div id="guide"></div>
   <div id="progress"></div>
   <div id="mic" hidden>Ouvindo</div>
+  <div id="lessonTag" hidden></div>
   <div id="count" hidden></div>
   <div id="bar">
-    <button class="btn txt" id="edit" type="button">Editar</button>
+    <button class="btn txt" id="edit" type="button">Voltar</button>
+    <button class="btn txt" id="doneBtn" type="button" hidden>Gravada ✓</button>
     <button class="btn" id="restart" type="button" aria-label="Voltar ao início">⤒</button>
     <div class="grp" id="speedGrp">
       <span>Vel</span>
@@ -324,11 +421,12 @@ body.voice #speedGrp { display: none; }
   // ---------- Texto em palavras (para seguir a voz) ----------
   const norm = w => w.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
   let spans = [], words = [], tops = [];
+  let stageText = '', stageLesson = null, backScroll = 0;
 
   function buildTrack() {
     track.textContent = '';
     spans = []; words = [];
-    const src = s.text.trim() ? s.text : '(sem texto)';
+    const src = stageText.trim() ? stageText : '(sem texto)';
     for (const part of src.split(/(\s+)/)) {
       if (!part) continue;
       if (/^\s+$/.test(part)) { track.appendChild(document.createTextNode(part)); continue; }
@@ -511,11 +609,16 @@ body.voice #speedGrp { display: none; }
     if (document.visibilityState === 'visible' && !stage.hidden) lockScreen();
   });
 
-  function openStage() {
+  function openStage(txt, lesson) {
+    stageText = txt; stageLesson = lesson;
+    backScroll = window.scrollY;
     buildTrack();
     applyStyle(); labels();
     track.classList.toggle('dim', s.voice);
-    editor.hidden = true; stage.hidden = false;
+    $('lessonTag').hidden = !lesson;
+    $('lessonTag').textContent = lesson ? lesson.id + ' · ' + lesson.title : '';
+    $('doneBtn').hidden = !lesson;
+    editor.hidden = true; course.hidden = true; stage.hidden = false;
     measure();
     y = 0; last = 0; pos = 0; doneUpTo = 0; targetY = null;
     micState('', 'Pausado');
@@ -527,7 +630,9 @@ body.voice #speedGrp { display: none; }
   }
   function closeStage() {
     cancelCountdown(); setPlaying(false); stopListening(); cancelAnimationFrame(raf);
-    stage.hidden = true; editor.hidden = false;
+    stage.hidden = true;
+    if (stageLesson) { course.hidden = false; renderCourse(); } else editor.hidden = false;
+    window.scrollTo(0, backScroll);
     try { wake && wake.release(); } catch (e) {} wake = null;
     try { document.fullscreenElement && document.exitFullscreen().catch(() => {}); } catch (e) {}
   }
@@ -551,7 +656,115 @@ body.voice #speedGrp { display: none; }
     if (was) setPlaying(true);
   }
 
-  $('go').addEventListener('click', openStage);
+  $('go').addEventListener('click', () => openStage(s.text, null));
+
+  // ---------- Curso: senha, lista de aulas e checklist ----------
+  const course = $('course'), lock = $('lock'), list = $('list');
+  const CKEY = 'prompter-curso-jb';
+  let cdata = null, cst = { pass: '', done: {}, last: '', hide: false };
+  try { cst = { ...cst, ...JSON.parse(localStorage.getItem(CKEY) || '{}') }; } catch (e) {}
+  const csave = () => { try { localStorage.setItem(CKEY, JSON.stringify(cst)); } catch (e) {} };
+  const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+
+  async function decrypt(pass) {
+    const enc = await (await fetch('curso.enc.json', { cache: 'no-cache' })).json();
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: b64(enc.salt), iterations: enc.iter, hash: 'SHA-256' },
+      base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(enc.iv) }, key, b64(enc.data));
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+
+  function fmtMin(m) {
+    m = Math.round(m);
+    const h = Math.floor(m / 60), r = m % 60;
+    return h ? h + 'h' + String(r).padStart(2, '0') : r + ' min';
+  }
+
+  function renderCourse() {
+    if (!cdata) return;
+    const L = cdata.lessons;
+    const done = L.filter(l => cst.done[l.id]);
+    const left = L.filter(l => !cst.done[l.id]).reduce((a, l) => a + l.min, 0);
+    $('sumCount').textContent = done.length + ' de ' + L.length + ' gravadas';
+    $('sumBar').style.width = (done.length / L.length * 100) + '%';
+    $('sumTime').textContent = left ? 'Faltam cerca de ' + fmtMin(left) + ' de fala' : 'Todas as aulas gravadas';
+    $('hideDone').checked = cst.hide;
+    list.textContent = '';
+    cdata.mods.forEach((name, mi) => {
+      const ls = L.filter(l => l.mod === mi && !(cst.hide && cst.done[l.id]));
+      if (!ls.length) return;
+      const all = L.filter(l => l.mod === mi);
+      const box = document.createElement('div'); box.className = 'mod';
+      const h = document.createElement('h2');
+      const a = document.createElement('span'); a.textContent = (mi && mi < 21 ? 'Módulo ' + mi + ' · ' : '') + name;
+      const b = document.createElement('span'); b.textContent = all.filter(l => cst.done[l.id]).length + '/' + all.length;
+      h.append(a, b); box.appendChild(h);
+      for (const l of ls) {
+        const row = document.createElement('div');
+        row.className = 'lesson' + (cst.done[l.id] ? ' done' : '') + (cst.last === l.id ? ' last' : '');
+        const tick = document.createElement('button');
+        tick.type = 'button'; tick.className = 'tick';
+        tick.setAttribute('aria-label', (cst.done[l.id] ? 'Desmarcar ' : 'Marcar como gravada ') + l.id);
+        tick.addEventListener('click', () => { cst.done[l.id] = !cst.done[l.id]; if (!cst.done[l.id]) delete cst.done[l.id]; csave(); renderCourse(); });
+        const open = document.createElement('button');
+        open.type = 'button'; open.className = 'open';
+        const t = document.createElement('span'); t.className = 't';
+        const id = document.createElement('b'); id.textContent = l.id;
+        t.append(id, l.title);
+        const m = document.createElement('span'); m.className = 'm'; m.textContent = '~' + String(l.min).replace('.', ',') + ' min';
+        open.append(t, m);
+        if (l.prep) { const p = document.createElement('span'); p.className = 'prep'; p.textContent = 'Separar: ' + l.prep; open.appendChild(p); }
+        open.addEventListener('click', () => { cst.last = l.id; csave(); openStage(l.text, l); });
+        row.append(tick, open);
+        box.appendChild(row);
+      }
+      list.appendChild(box);
+    });
+  }
+
+  function showCourse() { lock.hidden = true; editor.hidden = true; course.hidden = false; $('toCourse').hidden = false; renderCourse(); }
+  function showFree() { lock.hidden = true; course.hidden = true; editor.hidden = false; window.scrollTo(0, 0); }
+
+  async function unlock(pass, silent) {
+    try {
+      cdata = await decrypt(pass);
+      cst.pass = pass; csave();
+      showCourse();
+      return true;
+    } catch (e) {
+      cdata = null;
+      if (!silent) $('lockMsg').textContent = e instanceof DOMException && e.name === 'OperationError'
+        ? 'Senha errada. Confira e tente de novo.'
+        : 'Não consegui carregar os roteiros. Confira a internet e tente de novo.';
+      return false;
+    }
+  }
+
+  $('lockForm').addEventListener('submit', e => {
+    e.preventDefault();
+    $('lockMsg').textContent = 'Abrindo…';
+    unlock($('pass').value.trim());
+  });
+  $('skipLock').addEventListener('click', showFree);
+  $('toFree').addEventListener('click', showFree);
+  $('toCourse').addEventListener('click', () => { if (cdata) showCourse(); else { editor.hidden = true; lock.hidden = false; } });
+  $('hideDone').addEventListener('change', () => { cst.hide = $('hideDone').checked; csave(); renderCourse(); });
+  $('doneBtn').addEventListener('click', () => {
+    if (stageLesson) { cst.done[stageLesson.id] = true; csave(); }
+    closeStage();
+  });
+
+  // Abre direto nas aulas: senha salva neste celular, ou senha no link (#senha)
+  (async () => {
+    const fromHash = decodeURIComponent(location.hash.slice(1));
+    if (fromHash) history.replaceState(null, '', location.pathname);
+    const pass = fromHash || cst.pass;
+    if (pass && await unlock(pass, true)) return;
+    editor.hidden = true; lock.hidden = false;
+    $('toCourse').hidden = false;
+  })();
   $('edit').addEventListener('click', closeStage);
   $('restart').addEventListener('click', () => { y = 0; pos = 0; markDone(); targetY = null; render(); setPlaying(false); });
   playBtn.addEventListener('click', toggle);
