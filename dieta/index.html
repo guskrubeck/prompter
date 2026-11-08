@@ -1,0 +1,952 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121311" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cardápio">
+<title>Cardápio de Bolso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --bg: #f6f3ee;
+  --surface: #ffffff;
+  --sunk: #efebe4;
+  --ink: #1d1c1a;
+  --muted: #6f6a62;
+  --line: #e4ded3;
+  --accent: #2f7a4b;
+  --accent-soft: #e2efe6;
+  --warn: #a5560f;
+  --warn-soft: #f8ead9;
+  --info: #3b5b9a;
+  --info-soft: #e4eaf6;
+  --font: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121311; --surface: #1b1c19; --sunk: #232420; --ink: #f2efe9; --muted: #a39e94;
+    --line: #2e2f2a; --accent: #6cc28f; --accent-soft: #1f3327; --warn: #e6a35c;
+    --warn-soft: #3a2a18; --info: #8fb0ef; --info-soft: #1e2a40; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121311; --surface: #1b1c19; --sunk: #232420; --ink: #f2efe9; --muted: #a39e94;
+  --line: #2e2f2a; --accent: #6cc28f; --accent-soft: #1f3327; --warn: #e6a35c;
+  --warn-soft: #3a2a18; --info: #8fb0ef; --info-soft: #1e2a40; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font);
+  font-size: 16px; line-height: 1.45; -webkit-tap-highlight-color: transparent;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+}
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap {
+  max-width: 640px; margin: 0 auto;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left));
+}
+h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 28px 0 10px; font-weight: 600; }
+.date { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Topo: resumo do dia ---------- */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.stat b { display: block; font-size: 20px; font-weight: 700; line-height: 1.2; }
+.stat small { color: var(--muted); font-size: 12px; }
+.bar { height: 4px; border-radius: 4px; background: var(--sunk); margin-top: 8px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .3s; }
+
+.switch {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+  margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 14px; text-align: left;
+}
+.switch span small { display: block; color: var(--muted); font-size: 13px; }
+.toggle { width: 44px; height: 26px; border-radius: 13px; background: var(--line); position: relative; flex: none; transition: background .2s; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch[aria-checked="true"] { border-color: var(--warn); background: var(--warn-soft); }
+.switch[aria-checked="true"] .toggle { background: var(--warn); }
+.switch[aria-checked="true"] .toggle::after { transform: translateX(18px); }
+
+/* ---------- Linha do tempo ---------- */
+.timeline { display: grid; gap: 8px; }
+.meal {
+  display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 12px 14px;
+}
+.meal.now { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.meal.done { background: var(--sunk); }
+.meal.done .meal-name { color: var(--muted); }
+.meal-time { font-size: 14px; font-weight: 600; color: var(--muted); }
+.meal-body { background: none; border: 0; padding: 0; text-align: left; min-width: 0; }
+.meal-name { font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.meal-sub { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.info { background: var(--info-soft); color: var(--info); }
+.badge.plain { background: var(--sunk); color: var(--muted); }
+.check {
+  width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--line); background: none;
+  display: grid; place-items: center; flex: none;
+}
+.check svg { width: 18px; height: 18px; opacity: 0; }
+.check.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.check.on svg { opacity: 1; }
+
+/* ---------- Cards ---------- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 8px; }
+.card h3 { margin: 0 0 4px; font-size: 16px; }
+.card p { margin: 0; color: var(--muted); font-size: 14px; }
+.card.link { width: 100%; text-align: left; display: block; }
+.rules { counter-reset: r; display: grid; gap: 8px; }
+.rule { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+.rule::before { counter-increment: r; content: counter(r); width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+.rule b { display: block; }
+.rule span { color: var(--muted); font-size: 14px; }
+
+/* ---------- Lista de receitas ---------- */
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 500; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.rlist { display: grid; gap: 8px; margin-top: 12px; }
+.ritem { width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; }
+.ritem-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.ritem-name { font-weight: 600; }
+.ritem-kcal { font-size: 14px; color: var(--muted); white-space: nowrap; }
+.ritem-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.ritem.chosen { border-color: var(--accent); }
+
+/* ---------- Tabelas simples ---------- */
+.rows { display: grid; }
+.rows div { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.rows div:first-child { border-top: 0; padding-top: 0; }
+.rows div:last-child { padding-bottom: 0; }
+.rows dt, .rows b { font-weight: 600; }
+.rows span { color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.grid2 .card + .card { margin-top: 0; }
+.card ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; }
+.card li + li { margin-top: 4px; }
+.targets { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.target { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.target small { display: block; color: var(--muted); font-size: 12px; }
+.target b { font-size: 20px; }
+.path { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 600; }
+.path i { color: var(--muted); font-style: normal; }
+.pantry { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pantry span { font-size: 13px; padding: 5px 10px; border-radius: 999px; background: var(--sunk); color: var(--muted); }
+.note { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+
+/* ---------- Painel (refeição / receita) ---------- */
+.sheet { position: fixed; inset: 0; z-index: 20; display: flex; justify-content: center; }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.35); }
+.sheet-panel {
+  position: relative; width: 100%; max-width: 640px; margin-top: max(24px, env(safe-area-inset-top));
+  background: var(--bg); border-radius: 20px 20px 0 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  animation: up .22s ease-out;
+}
+@keyframes up { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sheet-panel { animation: none; } }
+.sheet-head { position: sticky; top: 0; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 0 10px; z-index: 1; }
+.iconbtn { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 500; }
+.sheet h2.title { font-size: 24px; text-transform: none; letter-spacing: -0.01em; color: var(--ink); margin: 4px 0 2px; font-weight: 700; }
+.sheet .lead { color: var(--muted); margin: 0 0 12px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.fact { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+.fact small { display: block; color: var(--muted); font-size: 12px; }
+.fact b { font-size: 17px; }
+.ing { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.ing li { display: grid; grid-template-columns: minmax(84px, 32%) 1fr; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 15px; }
+.ing li:first-child { border-top: 0; }
+.ing li b { font-weight: 600; }
+.steps { margin: 0; padding: 14px 14px 14px 34px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; font-size: 15px; }
+.steps li + li { margin-top: 6px; }
+.opinion { background: var(--accent-soft); border-radius: 14px; padding: 14px; font-size: 15px; margin-top: 8px; }
+.opinion b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 4px; }
+.primary { width: 100%; margin-top: 20px; background: var(--accent); color: #fff; border: 0; border-radius: 14px; padding: 14px; font-weight: 600; font-size: 16px; }
+.primary.undo { background: var(--sunk); color: var(--ink); }
+.banner { background: var(--warn-soft); color: var(--warn); border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 500; margin-bottom: 10px; }
+
+/* ---------- Navegação ---------- */
+nav.tabs {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; background: var(--surface); border-top: 1px solid var(--line);
+  display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+nav.tabs .inner { display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; max-width: 640px; }
+nav.tabs button { background: none; border: 0; padding: 10px 4px 12px; display: grid; justify-items: center; gap: 3px; font-size: 12px; font-weight: 600; color: var(--muted); }
+nav.tabs button svg { width: 22px; height: 22px; }
+nav.tabs button[aria-current="page"] { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <!-- HOJE -->
+  <section id="v-hoje" data-view>
+    <h1>Cardápio de Bolso</h1>
+    <div class="date" id="today-label"></div>
+    <div class="stats">
+      <div class="stat"><b class="num" id="s-kcal">0</b><small>de <span class="num" id="s-kcal-meta"></span> kcal</small><div class="bar"><i id="b-kcal" style="width:0"></i></div></div>
+      <div class="stat"><b class="num" id="s-prot">0 g</b><small>de <span class="num" id="s-prot-meta"></span> g prot.</small><div class="bar"><i id="b-prot" style="width:0"></i></div></div>
+      <div class="stat"><b class="num" id="s-meals">0/6</b><small>refeições</small><div class="bar"><i id="b-meals" style="width:0"></i></div></div>
+    </div>
+    <button class="switch" id="gravacao" role="switch" aria-checked="false">
+      <span><b>Dia de gravação fora</b><small>Lanche portátil em destaque, sem bike hoje</small></span>
+      <span class="toggle" aria-hidden="true"></span>
+    </button>
+
+    <h2>Refeições de hoje</h2>
+    <div class="timeline" id="timeline"></div>
+
+    <h2>Coringa da semana</h2>
+    <button class="card link" data-open-recipe="caponata">
+      <h3>Legumes assados estilo caponata</h3>
+      <p>Uma bandeja no domingo, outra na quarta. Vai no almoço e na janta.</p>
+    </button>
+
+    <h2>As 3 regras</h2>
+    <div class="card"><div class="rules" id="rules"></div></div>
+  </section>
+
+  <!-- RECEITAS -->
+  <section id="v-receitas" data-view hidden>
+    <h1>Receitas</h1>
+    <div class="date">Me manda um Reels (com a legenda) e eu adapto e coloco aqui.</div>
+    <h2>Filtrar</h2>
+    <div class="chips" id="filters"></div>
+    <div class="rlist" id="recipe-list"></div>
+  </section>
+
+  <!-- SEMANA -->
+  <section id="v-semana" data-view hidden>
+    <h1>Semana</h1>
+    <div class="date">Treino, preparo e fim de semana.</div>
+
+    <h2>Treino</h2>
+    <div class="card"><div class="rows" id="treino"></div><p class="note" id="zona2" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px"></p></div>
+
+    <h2>Preparo</h2>
+    <div class="card"><div class="rows" id="preparo"></div></div>
+
+    <h2>Freezer: plano B</h2>
+    <div class="card"><p>Ter sempre pelo menos um destes congelado:</p><ul id="freezer"></ul></div>
+
+    <h2>Fim de semana</h2>
+    <div class="grid2" id="fds"></div>
+  </section>
+
+  <!-- METAS -->
+  <section id="v-metas" data-view hidden>
+    <h1>Metas</h1>
+    <div class="date" id="perfil"></div>
+
+    <h2>Por dia</h2>
+    <div class="targets" id="targets"></div>
+
+    <h2>Peso</h2>
+    <div class="card">
+      <div class="path" id="peso-path"></div>
+      <p class="note" id="peso-note"></p>
+    </div>
+
+    <h2>Distribuição do dia</h2>
+    <div class="card"><div class="rows" id="distrib"></div></div>
+
+    <h2>Despensa</h2>
+    <div class="card">
+      <p>Valores por enquanto são <b>estimados</b>. Manda foto da tabela nutricional de cada item que eu troco pelos números da tua marca.</p>
+      <div class="pantry" id="pantry"></div>
+    </div>
+
+    <h2>Em breve</h2>
+    <div class="card">
+      <ul>
+        <li>Lista de compras gerada a partir do cardápio da semana.</li>
+        <li>Foto da geladeira: eu sugiro o que fazer com o que tem.</li>
+        <li>Diário: peso, treino e dor (0–10), pra cruzar com a dieta.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<!-- Painel de refeição / receita -->
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-backdrop" data-close></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-head">
+      <button class="iconbtn" id="sheet-back" hidden>‹ Opções</button>
+      <span></span>
+      <button class="iconbtn" data-close>Fechar</button>
+    </div>
+    <div id="sheet-body"></div>
+  </div>
+</div>
+
+<nav class="tabs" aria-label="Seções">
+  <div class="inner">
+    <button data-tab="hoje" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Hoje
+    </button>
+    <button data-tab="receitas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h6M8 11h6"/></svg>Receitas
+    </button>
+    <button data-tab="semana">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Semana
+    </button>
+    <button data-tab="metas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Metas
+    </button>
+  </div>
+</nav>
+
+<script>
+/*
+ * Cardápio de Bolso: todos os dados do plano ficam aqui.
+ * Para adicionar uma receita, copie um bloco de RECEITAS e ajuste.
+ * Valores marcados como "estimado" usam média de tabela; viram "conferido"
+ * quando batem com a tabela nutricional da marca que a gente usa.
+ */
+window.DIETA = {
+  metas: {
+    kcal: 2600,
+    proteina: 190,
+    gordura: "70–80",
+    carbo: "280–300",
+    agua: "3,5–4 L",
+    pesoAtual: "101–104 kg",
+    marco1: "~95 kg",
+    marco1Quando: "fim de jan / começo de fev",
+    marcoFinal: "88–90 kg",
+    ritmo: "0,5–0,8 kg por semana",
+    perfil: "30 anos · 1,84 m · CrossFit RX há 5+ anos · pedal há 10+ anos",
+  },
+
+  refeicoes: [
+    { id: "pre",    nome: "Pré-treino",      hora: "06:00", alvo: 90,  fixa: true,
+      papel: "Leve, energia rápida antes do CrossFit (6h30–8h)." },
+    { id: "cafe",   nome: "Café da manhã",   hora: "08:30", alvo: 550, fixa: true,
+      papel: "Recuperação pós-treino. Refeição forte." },
+    { id: "almoco", nome: "Almoço",          hora: "12:30", alvo: 700,
+      papel: "Marmita da leva (domingo ou quarta) + coringa de legumes." },
+    { id: "lanche", nome: "Lanche da tarde", hora: "15:30", alvo: 400,
+      papel: "O que segura a noite. Não pode pular." },
+    { id: "janta",  nome: "Janta",           hora: "19:00", alvo: 600,
+      papel: "Moderada. Se não tiver fome, puxa calorias pro almoço." },
+    { id: "ceia",   nome: "Ceia",            hora: "20:45", alvo: 200,
+      papel: "Pequena, com o doce dentro do plano." },
+  ],
+
+  receitas: [
+    /* ---------- PRÉ-TREINO ---------- */
+    {
+      id: "pao-geleia", refeicao: "pre", nome: "Pão com geleia ou doce de leite",
+      kcal: 90, prot: 3, status: "estimado", tags: ["fixo"],
+      ingredientes: [
+        ["1 fatia", "pão de forma"],
+        ["1 col. chá generosa", "geleia sem açúcar ou doce de leite sem açúcar"],
+      ],
+      preparo: ["Montar e comer ~30 min antes do treino."],
+      nota: "Se faltar gás no fim do treino: 2 fatias, ou 1 fatia + 1 banana pequena (~170 kcal).",
+    },
+
+    /* ---------- CAFÉ DA MANHÃ ---------- */
+    {
+      id: "panqueca-banana", refeicao: "cafe", nome: "Panqueca de banana + latte",
+      kcal: 550, prot: 39, status: "estimado", tags: ["fixo"],
+      ingredientes: [
+        ["30 g", "farelo de aveia"],
+        ["1", "ovo"],
+        ["30 g", "whey"],
+        ["1", "banana amassada"],
+        ["1 pitada", "canela"],
+        ["1 col. sopa", "geleia de laranja sem açúcar (cobertura)"],
+        ["~150 g", "mamão em fatias"],
+        ["1", "espresso"],
+        ["~200 ml (a medir)", "leite de aveia barista vaporizado"],
+      ],
+      preparo: [
+        "Misturar farelo, ovo, whey, banana e canela.",
+        "Dourar dos dois lados na frigideira.",
+        "Cobrir com geleia e mamão.",
+        "Vaporizar o leite e juntar ao espresso.",
+      ],
+      nota: "Muito bom: ~40 g de proteína logo depois do treino. Se um dia quiser, leite desnatado no latte economiza ~50 kcal e soma ~6 g de proteína. Mas se o latte de aveia é o ritual, mantém.",
+    },
+
+    /* ---------- ALMOÇO ---------- */
+    {
+      id: "frango-creme", refeicao: "almoco", nome: "Frango ao creme light",
+      sub: "com arroz de cenoura e brócolis", kcal: 650, prot: 55,
+      rende: "6 porções (3 dias × 2)", status: "estimado", tags: ["meal prep"],
+      ingredientes: [
+        ["~1 kg", "peito de frango em cubos"],
+        ["1 caixinha", "creme de leite LIGHT"],
+        ["~100 ml", "leite desnatado"],
+        ["1½ copo (cru)", "arroz"],
+        ["2–3", "cenouras raladas (no arroz)"],
+        ["1 maço", "brócolis"],
+      ],
+      preparo: [
+        "Dourar o frango na frigideira.",
+        "Juntar o creme light e o leite, reduzir em fogo baixo.",
+        "Cozinhar o arroz com a cenoura ralada junto.",
+        "Cozinhar o brócolis no vapor.",
+        "Dividir em 6 marmitas (as tuas mais cheias).",
+      ],
+      nota: "Proteína nunca foi o problema: 1 kg de peito é muita proteína. O ajuste é o creme LIGHT, que libera espaço pra uma concha de feijão (+100 kcal, +6 g). Champignon ou milho no molho dão mais volume.",
+    },
+    {
+      id: "nhoque-bolonhesa", refeicao: "almoco", nome: "Nhoque à bolonhesa reforçado",
+      kcal: 600, prot: 50, rende: "6 porções (3 dias × 2)", status: "estimado",
+      tags: ["meal prep"],
+      ingredientes: [
+        ["~1 kg", "patinho moído"],
+        ["1 vidro", "passata de tomate"],
+        ["1 + 1", "cenoura e abobrinha raladas (no molho)"],
+        ["600–800 g", "nhoque"],
+        ["1 col. sopa", "azeite"],
+      ],
+      preparo: [
+        "Refogar a carne até dourar.",
+        "Juntar cenoura e abobrinha raladas e a passata. Apurar.",
+        "Cozinhar o nhoque e misturar ao molho.",
+        "Dividir em 6 marmitas.",
+      ],
+      nota: "A versão antiga (400 g de carne em 3 porções) ficava com ~35 g de proteína e o nhoque dominando o prato. Mais carne e o mesmo nhoque resolvem. Os legumes ralados somem no molho.",
+    },
+    {
+      id: "pf-base", refeicao: "almoco", nome: "Prato base: arroz, feijão, carne e salada",
+      kcal: 650, prot: 55, status: "estimado", tags: ["clássico"],
+      ingredientes: [
+        ["4 col. sopa (~150 g)", "arroz cozido"],
+        ["1 concha", "feijão"],
+        ["~150 g (cozido)", "carne magra ou frango grelhado"],
+        ["à vontade", "salada + caponata"],
+        ["1 col. chá", "azeite na salada"],
+      ],
+      preparo: ["Montar o prato. Massa pode substituir arroz e feijão (~1 xícara cozida)."],
+      nota: "O prato de quando tu estava no auge. Funciona em casa ou no PF, desde que a carne não seja a menor coisa do prato.",
+    },
+
+    /* ---------- LANCHE DA TARDE ---------- */
+    {
+      id: "muffin-banana", refeicao: "lanche", nome: "Muffin de banana de caneca",
+      sub: "versão inverno", kcal: 380, prot: 36, status: "estimado",
+      tags: ["inverno", "doce"],
+      ingredientes: [
+        ["30 g", "whey (o sabor define o gosto)"],
+        ["20 g", "aveia"],
+        ["1", "ovo"],
+        ["1", "banana"],
+        ["60 ml", "leite desnatado"],
+        ["1 pitada", "canela"],
+      ],
+      preparo: ["Bater tudo.", "Colocar num bowl.", "Micro-ondas por 2 min 30 s."],
+      nota: "Perfeito. Aveia e ovo dão saciedade que segura até as 19h.",
+    },
+    {
+      id: "sorbet-frutas", refeicao: "lanche", nome: "Sorbet de frutas com whey",
+      sub: "versão verão", kcal: 380, prot: 32, status: "estimado",
+      tags: ["verão", "doce"],
+      ingredientes: [
+        ["1", "banana congelada (dá a cremosidade)"],
+        ["1 porção", "manga, morango ou mamão congelado"],
+        ["30 g", "whey"],
+        ["~50 ml", "leite desnatado (só pra dar ponto)"],
+        ["+ 1 destes", "15 g de pasta de amendoim · 20 g de granola sem açúcar · iogurte/skyr no lugar do leite"],
+      ],
+      preparo: ["Bater no processador até ficar cremoso.", "Finalizar com o reforço escolhido."],
+      nota: "Sem o reforço fica com ~270 kcal, só fruta e whey, e a fome volta antes da janta. O reforço é o que faz durar.",
+    },
+    {
+      id: "kit-coqueteleira", refeicao: "lanche", nome: "Kit coqueteleira",
+      sub: "pra dia de gravação", kcal: 340, prot: 26, status: "sugestao",
+      tags: ["portátil"],
+      ingredientes: [
+        ["30 g", "whey seco na coqueteleira (água na hora)"],
+        ["1", "banana"],
+        ["20 g", "castanhas ou mix de nuts"],
+      ],
+      preparo: ["Deixar montado na mochila. Na hora: água, chacoalhar, comer a fruta e as castanhas."],
+      nota: "Sugestão minha. Me diz se curte.",
+    },
+    {
+      id: "sanduiche-frango", refeicao: "lanche", nome: "Sanduíche de frango",
+      sub: "pra dia de gravação", kcal: 300, prot: 30, status: "sugestao",
+      tags: ["portátil"],
+      ingredientes: [
+        ["2 fatias", "pão integral"],
+        ["~80 g", "frango desfiado (da leva da semana)"],
+        ["1 col. sopa", "requeijão light"],
+        ["à vontade", "folhas, tomate"],
+      ],
+      preparo: ["Montar de manhã, embalar em papel-filme. Aguenta algumas horas fora da geladeira."],
+      nota: "Sugestão minha. Opção salgada, caso a vontade de doce não diminua.",
+    },
+    {
+      id: "iogurte-fruta", refeicao: "lanche", nome: "Iogurte proteico + fruta + granola",
+      sub: "pra dia de gravação", kcal: 320, prot: 24, status: "sugestao",
+      tags: ["portátil"],
+      ingredientes: [
+        ["1 pote", "iogurte proteico"],
+        ["1", "fruta (maçã, banana)"],
+        ["20 g", "granola sem açúcar (potinho separado)"],
+      ],
+      preparo: ["Levar na bolsa térmica ou comprar o iogurte no caminho."],
+      nota: "Sugestão minha. Iogurte proteico tem em quase todo mercado e padaria.",
+    },
+
+    /* ---------- JANTA ---------- */
+    {
+      id: "sanduiche-ovos", refeicao: "janta", nome: "Sanduíche de ovos mexidos",
+      sub: "janta rápida", kcal: 700, prot: 44, status: "estimado",
+      tags: ["rápido"],
+      ingredientes: [
+        ["3 fatias", "pão de forma (integral, se curtir)"],
+        ["4", "ovos mexidos"],
+        ["1 fatia", "queijo"],
+        ["2 fatias", "peito de peru (opcional, +7 g de proteína)"],
+        ["1 col. sopa", "maionese light ou requeijão light"],
+        ["polvilhado", "gergelim preto"],
+        ["1 xícara", "caponata do lado ou por cima"],
+      ],
+      preparo: ["Mexer os ovos, montar, polvilhar o gergelim.", "Servir com a caponata."],
+      nota: "Em caloria e proteína já estava quase no alvo. Faltava vegetal, e a caponata resolve. É a janta de dia cansado: melhor que pedir comida.",
+    },
+    {
+      id: "panqueca-carne", refeicao: "janta", nome: "Panqueca de carne gratinada",
+      kcal: 590, prot: 54, rende: "16 panquecas (congela)", porcao: "3 panquecas",
+      status: "estimado", tags: ["freezer"],
+      ingredientes: [
+        ["2 xícaras", "farinha de trigo (massa)"],
+        ["4", "ovos (massa)"],
+        ["2 xícaras", "leite desnatado (massa)"],
+        ["~1 kg", "patinho moído (recheio)"],
+        ["1 vidro", "passata (recheio + cobertura)"],
+        ["1", "abobrinha ralada no recheio"],
+        ["~30 g por porção", "queijo ralado pra gratinar"],
+      ],
+      preparo: [
+        "Bater a massa e fazer as panquecas finas.",
+        "Refogar a carne com a abobrinha e metade da passata.",
+        "Rechear e enrolar.",
+        "Pra congelar: sem molho, em potes ou sacos.",
+        "Na hora: 3 panquecas + molho + queijo, air fryer até gratinar.",
+      ],
+      nota: "Excelente janta: ~54 g de proteína em 3 panquecas. Congeladas viram janta de 15 minutos e plano B da semana.",
+    },
+    {
+      id: "panqueca-ricota", refeicao: "janta", nome: "Panqueca de ricota, espinafre e frango",
+      kcal: 560, prot: 45, rende: "16 panquecas (congela)", porcao: "3 panquecas",
+      status: "estimado", tags: ["freezer"],
+      ingredientes: [
+        ["massa", "igual à panqueca de carne"],
+        ["~400 g", "ricota"],
+        ["1 maço", "espinafre refogado"],
+        ["~300 g (cozido)", "frango desfiado"],
+        ["~30 g por porção", "queijo ralado"],
+        ["a gosto", "molho branco leve ou vermelho por cima"],
+      ],
+      preparo: [
+        "Misturar ricota, espinafre e frango. Temperar.",
+        "Rechear, enrolar e congelar sem molho.",
+        "Na hora: molho + queijo, air fryer.",
+      ],
+      nota: "Só com ricota e espinafre fica ~33 g de proteína. O frango desfiado é o que deixa equilibrada.",
+    },
+    {
+      id: "marmita-leva", refeicao: "janta", nome: "Marmita da leva do almoço",
+      kcal: 650, prot: 55, status: "estimado", tags: ["meal prep"],
+      ingredientes: [["1", "marmita da leva + caponata"]],
+      preparo: ["Esquentar e comer."],
+      nota: "Quando sobrar marmita. Lembrando que cada leva rende 3 dias de almoço pra dois.",
+    },
+
+    /* ---------- CEIA ---------- */
+    {
+      id: "pastinha-whey", refeicao: "ceia", nome: "Pastinha de whey com frutas",
+      kcal: 200, prot: 25, status: "estimado", tags: ["doce", "clássico"],
+      ingredientes: [
+        ["30 g", "whey (sabor à escolha)"],
+        ["1 chorinho", "leite, até virar pastinha"],
+        ["~150 g", "mamão picado (ou outra fruta)"],
+      ],
+      preparo: ["Misturar o whey com o leite até virar pasta.", "Juntar a fruta picada."],
+      nota: "A ceia da fase dos 87 kg. Já é o doce depois da janta, dentro do plano.",
+    },
+    {
+      id: "mousse-whey", refeicao: "ceia", nome: "Mousse de whey com cacau",
+      kcal: 190, prot: 28, status: "sugestao", tags: ["doce"],
+      ingredientes: [
+        ["30 g", "whey de chocolate ou baunilha"],
+        ["100 g", "iogurte natural desnatado"],
+        ["1 col. chá", "cacau em pó"],
+      ],
+      preparo: ["Misturar bem até ficar cremoso.", "10 min no freezer deixa com textura de mousse."],
+      nota: "Sugestão minha pra variar.",
+    },
+    {
+      id: "skyr-morango", refeicao: "ceia", nome: "Skyr com morango e cacau",
+      kcal: 200, prot: 18, status: "sugestao", tags: ["doce", "sem whey"],
+      ingredientes: [
+        ["1 pote", "skyr ou iogurte proteico"],
+        ["~100 g", "morango"],
+        ["1 col. chá", "cacau ou canela"],
+      ],
+      preparo: ["Montar no pote."],
+      nota: "Sugestão minha pra dar uma folga do whey (hoje são 90 g por dia).",
+    },
+    {
+      id: "chocolate-70", refeicao: "ceia", nome: "Doce planejado: chocolate 70%",
+      kcal: 110, prot: 2, status: "sugestao", tags: ["doce", "complemento"],
+      ingredientes: [["2 quadradinhos (~20 g)", "chocolate 70% cacau"]],
+      preparo: ["Junto com qualquer ceia, quando bater a vontade."],
+      nota: "Doce dentro do plano não é furo. Liberado, a vontade perde força.",
+    },
+
+    /* ---------- CORINGA ---------- */
+    {
+      id: "caponata", refeicao: "coringa", nome: "Legumes assados estilo caponata",
+      sub: "coringa da semana", kcal: 90, prot: 2, rende: "1 bandeja · ~6 porções",
+      porcao: "1 xícara cheia", status: "estimado", tags: ["coringa", "meal prep"],
+      ingredientes: [
+        ["1 grande", "berinjela"],
+        ["2", "abobrinhas"],
+        ["1 + 1", "pimentão amarelo e vermelho"],
+        ["1", "cebola roxa"],
+        ["1 xícara", "tomate-cereja"],
+        ["4–6 dentes", "alho com casca"],
+        ["2 col. sopa (medidas)", "azeite"],
+        ["a gosto", "sal, pimenta, orégano, páprica defumada"],
+        ["1 col. sopa", "vinagre balsâmico (no final)"],
+        ["a gosto", "cebolinha picada (no final, crua)"],
+      ],
+      preparo: [
+        "Cortar tudo em cubos de 1,5–2 cm.",
+        "Temperar tudo junto numa tigela, assim a berinjela não suga o azeite sozinha.",
+        "Espalhar na bandeja sem empilhar (se precisar, duas bandejas).",
+        "Forno a 200 °C por 40–50 min, mexendo na metade.",
+        "Saiu do forno: balsâmico + cebolinha.",
+      ],
+      nota: "Esfriar e guardar em pote de vidro fechado. Dura 4 dias, então é uma bandeja no domingo e outra na quarta. Pote separado na marmita, pra não molhar o arroz. Opcionais: abóbora cabotiá, champignon, couve-flor.",
+    },
+  ],
+
+  semana: {
+    treino: [
+      ["Seg–Sex", "CrossFit 6h30–8h"],
+      ["3× por semana", "Bike Zona 2, 45 min–1h, à tarde. Nos dias SEM gravação fora."],
+      ["Sábado", "Caminhada leve de 1h–1h30 (se der vontade)"],
+      ["Domingo", "Descanso total + preparo da comida"],
+    ],
+    zona2: "120–140 bpm, ou conseguir falar frases inteiras. Se virar treino puxado, perde a função.",
+    preparo: [
+      ["Domingo", "Leva 1: rende domingo, segunda e terça (6 porções) + bandeja de caponata"],
+      ["Quarta", "Leva 2: rende quarta, quinta e sexta (6 porções) + bandeja de caponata"],
+      ["Quando der", "Leva de panquecas (16) pro freezer + feijão porcionado"],
+    ],
+    freezer: [
+      "Panquecas recheadas (carne ou ricota com frango)",
+      "Potes de feijão",
+      "Porções de bolonhesa",
+      "Frango desfiado",
+    ],
+    fimDeSemana: [
+      {
+        titulo: "Sushi de sexta", tipo: "Livre",
+        dicas: [
+          "Combinado fechado: ~20–25 peças por pessoa.",
+          "Prioriza sashimi, niguiri e uramaki simples.",
+          "Hot roll, cream cheese e tempurá: uma porção pra dividir.",
+          "NÃO pula o lanche das 15h30 na sexta.",
+        ],
+      },
+      {
+        titulo: "Saída de sábado", tipo: "Livre",
+        dicas: [
+          "Refeição livre, não dia livre: café, almoço e lanche seguem o plano.",
+          "Bebida: a definir (me conta como costuma ser).",
+        ],
+      },
+      {
+        titulo: "Churrasco de domingo", tipo: "Controlado",
+        dicas: [
+          "Foco na carne: alcatra, maminha, fraldinha, frango, coração.",
+          "Picanha e costela com moderação. Tira a capa de gordura.",
+          "Pão de alho 1 · farofa 1 colher · linguiça 1 pedaço.",
+          "Salada e vinagrete primeiro.",
+        ],
+      },
+      {
+        titulo: "Segunda-feira", tipo: "Normal",
+        dicas: [
+          "Sem compensar: plano normal.",
+          "Peso alto na segunda é água (sal do shoyu e do churrasco), não gordura. Olha a média da semana.",
+        ],
+      },
+    ],
+  },
+
+  regras: [
+    ["Nunca pular o lanche das 15h30", "É ele que evita a fome e o doce da noite."],
+    ["Freezer sempre com plano B", "Quando o preparo falhar, a saída é o freezer, não o delivery."],
+    ["Fim de semana moderado", "Duas refeições livres. Nunca homérico."],
+  ],
+
+  despensa: [
+    "Pão de forma", "Geleia sem açúcar", "Doce de leite sem açúcar", "Farelo de aveia",
+    "Aveia em flocos", "Whey", "Leite de aveia barista", "Leite desnatado",
+    "Creme de leite light", "Passata de tomate", "Nhoque", "Queijo (fatia e ralado)",
+    "Maionese ou requeijão light", "Ricota", "Iogurte / skyr",
+  ],
+};
+</script>
+<script>
+(function () {
+  const D = window.DIETA;
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = (n) => Math.round(n).toLocaleString("pt-BR");
+  const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+
+  const recipes = Object.fromEntries(D.receitas.map((r) => [r.id, r]));
+  const meals = Object.fromEntries(D.refeicoes.map((m) => [m.id, m]));
+  const optionsFor = (mealId) => D.receitas.filter((r) => r.refeicao === mealId);
+
+  /* ---- Armazenamento por dia (só neste aparelho) ---- */
+  const dayKey = () => {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  };
+  const load = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  let eaten = load("dieta:dia:" + dayKey(), {});      // { mealId: recipeId }
+  let gravacao = load("dieta:grav:" + dayKey(), false);
+  const persist = () => { save("dieta:dia:" + dayKey(), eaten); save("dieta:grav:" + dayKey(), gravacao); };
+
+  /* ---- Rótulos ---- */
+  const statusBadge = (r) =>
+    r.status === "sugestao" ? '<span class="badge info">Sugestão</span>' :
+    r.status === "conferido" ? '<span class="badge">Conferido</span>' :
+    '<span class="badge plain">Estimado</span>';
+  const tagBadges = (r) => (r.tags || []).filter((t) => t !== "fixo").map((t) =>
+    `<span class="badge ${t === "portátil" ? "warn" : "plain"}">${esc(t)}</span>`).join("");
+
+  /* ---- HOJE ---- */
+  function nextMealId() {
+    const now = new Date(); const mins = now.getHours() * 60 + now.getMinutes();
+    for (const m of D.refeicoes) {
+      const [h, mm] = m.hora.split(":").map(Number);
+      if (!eaten[m.id] && mins <= h * 60 + mm + 60) return m.id;
+    }
+    return null;
+  }
+
+  function renderToday() {
+    const d = new Date();
+    $("#today-label").textContent = d.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+    $("#gravacao").setAttribute("aria-checked", String(gravacao));
+
+    const next = nextMealId();
+    $("#timeline").innerHTML = D.refeicoes.map((m) => {
+      const opts = optionsFor(m.id);
+      const chosen = eaten[m.id] && recipes[eaten[m.id]];
+      let sub;
+      if (chosen) sub = chosen.nome;
+      else if (m.fixa) sub = opts[0] ? opts[0].nome : "";
+      else if (m.id === "lanche" && gravacao) sub = "Dia de gravação: leva um portátil";
+      else sub = opts.length + " opções · ~" + fmt(m.alvo) + " kcal";
+      const done = !!chosen;
+      return `<div class="meal ${done ? "done" : ""} ${m.id === next ? "now" : ""}">
+        <span class="meal-time num">${esc(m.hora)}</span>
+        <button class="meal-body" data-open-meal="${m.id}">
+          <span class="meal-name">${esc(m.nome)}${m.id === next ? ' <span class="badge">Próxima</span>' : ""}${m.fixa ? ' <span class="badge plain">Fixa</span>' : ""}</span>
+          <span class="meal-sub" style="display:block">${esc(sub)}</span>
+        </button>
+        <button class="check ${done ? "on" : ""}" data-check="${m.id}" aria-label="${done ? "Desmarcar" : "Marcar"} ${esc(m.nome)}">${CHECK_SVG}</button>
+      </div>`;
+    }).join("");
+
+    let kcal = 0, prot = 0, n = 0;
+    for (const [mid, rid] of Object.entries(eaten)) {
+      const r = recipes[rid]; if (!r || !meals[mid]) continue;
+      kcal += r.kcal; prot += r.prot; n++;
+    }
+    const total = D.refeicoes.length;
+    $("#s-kcal").textContent = fmt(kcal);
+    $("#s-kcal-meta").textContent = fmt(D.metas.kcal);
+    $("#s-prot").textContent = fmt(prot) + " g";
+    $("#s-prot-meta").textContent = fmt(D.metas.proteina);
+    $("#s-meals").textContent = n + "/" + total;
+    $("#b-kcal").style.width = Math.min(100, (kcal / D.metas.kcal) * 100) + "%";
+    $("#b-prot").style.width = Math.min(100, (prot / D.metas.proteina) * 100) + "%";
+    $("#b-meals").style.width = (n / total) * 100 + "%";
+  }
+
+  function toggleMeal(mealId) {
+    const m = meals[mealId];
+    if (eaten[mealId]) { delete eaten[mealId]; persist(); renderToday(); return; }
+    if (m.fixa) { eaten[mealId] = optionsFor(mealId)[0].id; persist(); renderToday(); return; }
+    openMeal(mealId); // escolher qual opção
+  }
+
+  /* ---- Painel ---- */
+  const sheet = $("#sheet"), body = $("#sheet-body"), back = $("#sheet-back");
+  let lastFocus = null;
+  function showSheet() {
+    if (sheet.hidden) { lastFocus = document.activeElement; sheet.hidden = false; document.body.style.overflow = "hidden"; }
+    $(".sheet-panel").scrollTop = 0;
+    $("[data-close].iconbtn").focus();
+  }
+  function closeSheet() {
+    sheet.hidden = true; document.body.style.overflow = "";
+    if (lastFocus) lastFocus.focus();
+  }
+
+  function recipeItem(r, mealId) {
+    const chosen = mealId && eaten[mealId] === r.id;
+    return `<button class="ritem ${chosen ? "chosen" : ""}" data-open-recipe="${r.id}" ${mealId ? `data-from-meal="${mealId}"` : ""}>
+      <span class="ritem-top"><span class="ritem-name">${esc(r.nome)}</span><span class="ritem-kcal num">${fmt(r.kcal)} kcal · ${fmt(r.prot)} g</span></span>
+      ${r.sub ? `<span class="meal-sub" style="white-space:normal">${esc(r.sub)}</span>` : ""}
+      <span class="ritem-tags">${chosen ? '<span class="badge">Comi hoje</span>' : ""}${statusBadge(r)}${tagBadges(r)}</span>
+    </button>`;
+  }
+
+  function openMeal(mealId) {
+    const m = meals[mealId];
+    let opts = optionsFor(mealId);
+    if (m.fixa && opts.length === 1) return openRecipe(opts[0].id, null);
+    if (mealId === "lanche" && gravacao) {
+      opts = [...opts].sort((a, b) => (b.tags.includes("portátil") ? 1 : 0) - (a.tags.includes("portátil") ? 1 : 0));
+    }
+    back.hidden = true;
+    body.innerHTML = `
+      ${mealId === "lanche" && gravacao ? '<div class="banner">Dia de gravação: os portáteis estão no topo.</div>' : ""}
+      <h2 class="title" id="sheet-title">${esc(m.nome)}</h2>
+      <p class="lead"><span class="num">${esc(m.hora)}</span> · ~${fmt(m.alvo)} kcal · ${esc(m.papel)}</p>
+      <div class="rlist">${opts.map((r) => recipeItem(r, mealId)).join("")}</div>
+      ${mealId === "almoco" || mealId === "janta" ? `<h2>Acompanhamento</h2><div class="rlist">${recipeItem(recipes.caponata, null)}</div>` : ""}`;
+    showSheet();
+  }
+
+  function openRecipe(id, fromMeal) {
+    const r = recipes[id]; if (!r) return;
+    const mealId = r.refeicao in meals ? r.refeicao : null;
+    const ate = mealId && eaten[mealId] === r.id;
+    back.hidden = !fromMeal;
+    back.dataset.meal = fromMeal || "";
+    const facts = [
+      ["Calorias", fmt(r.kcal) + " kcal"],
+      ["Proteína", fmt(r.prot) + " g"],
+      r.porcao ? ["Porção", r.porcao] : null,
+      r.rende ? ["Rende", r.rende] : null,
+    ].filter(Boolean);
+    body.innerHTML = `
+      <div class="ritem-tags">${statusBadge(r)}${tagBadges(r)}</div>
+      <h2 class="title" id="sheet-title">${esc(r.nome)}</h2>
+      ${r.sub ? `<p class="lead">${esc(r.sub)}</p>` : ""}
+      <div class="facts">${facts.map(([k, v]) => `<div class="fact"><small>${esc(k)}</small><b class="num">${esc(v)}</b></div>`).join("")}</div>
+      <p class="note">${r.rende ? "Calorias e proteína por porção (as tuas porções)." : "Calorias e proteína da refeição."} ${r.status === "conferido" ? "" : "Valores estimados até chegarem as tabelas nutricionais."}</p>
+      <h2>Ingredientes</h2>
+      <ul class="ing">${r.ingredientes.map(([q, i]) => `<li><b>${esc(q)}</b><span>${esc(i)}</span></li>`).join("")}</ul>
+      <h2>Preparo</h2>
+      <ol class="steps">${r.preparo.map((p) => `<li>${esc(p)}</li>`).join("")}</ol>
+      ${r.nota ? `<div class="opinion"><b>Minha opinião</b>${esc(r.nota)}</div>` : ""}
+      ${mealId ? `<button class="primary ${ate ? "undo" : ""}" data-eat="${r.id}">${ate ? "Desmarcar de hoje" : "Comi hoje no " + esc(meals[mealId].nome.toLowerCase())}</button>` : ""}`;
+    showSheet();
+  }
+
+  /* ---- RECEITAS ---- */
+  let filter = "todas";
+  function renderRecipes() {
+    const groups = [["todas", "Todas"], ...D.refeicoes.map((m) => [m.id, m.nome]), ["coringa", "Coringa"]];
+    $("#filters").innerHTML = groups.map(([id, nome]) =>
+      `<button class="chip" data-filter="${id}" aria-pressed="${filter === id}">${esc(nome)}</button>`).join("");
+    const list = D.receitas.filter((r) => filter === "todas" || r.refeicao === filter);
+    $("#recipe-list").innerHTML = list.map((r) => recipeItem(r, null)).join("");
+  }
+
+  /* ---- SEMANA ---- */
+  function renderWeek() {
+    const S = D.semana;
+    $("#treino").innerHTML = S.treino.map(([a, b]) => `<div><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("");
+    $("#zona2").innerHTML = "<b>Zona 2:</b> " + esc(S.zona2);
+    $("#preparo").innerHTML = S.preparo.map(([a, b]) => `<div><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("");
+    $("#freezer").innerHTML = S.freezer.map((f) => `<li>${esc(f)}</li>`).join("");
+    $("#fds").innerHTML = S.fimDeSemana.map((c) => {
+      const cls = c.tipo === "Livre" ? "warn" : c.tipo === "Controlado" ? "info" : "plain";
+      return `<div class="card"><h3>${esc(c.titulo)} <span class="badge ${cls}">${esc(c.tipo)}</span></h3><ul>${c.dicas.map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>`;
+    }).join("");
+  }
+
+  /* ---- METAS ---- */
+  function renderGoals() {
+    const M = D.metas;
+    $("#perfil").textContent = M.perfil;
+    $("#targets").innerHTML = [
+      ["Calorias", fmt(M.kcal), "kcal"], ["Proteína", M.proteina, "g"], ["Carboidrato", M.carbo, "g"],
+      ["Gordura", M.gordura, "g"], ["Água", M.agua, ""],
+    ].map(([k, v, u]) => `<div class="target"><small>${k}</small><b class="num">${esc(v)}</b> <small style="display:inline">${u}</small></div>`).join("");
+    $("#peso-path").innerHTML = `<span>${esc(M.pesoAtual)}</span><i>→</i><span>${esc(M.marco1)}</span><i>→</i><span>${esc(M.marcoFinal)}</span>`;
+    $("#peso-note").textContent = `Ritmo de ${M.ritmo}. Primeiro marco no ${M.marco1Quando}. Pesa todo dia de manhã, em jejum, e olha a média da semana.`;
+    $("#distrib").innerHTML = D.refeicoes.map((m) => `<div><b class="num">${esc(m.hora)}</b><span>${esc(m.nome)} · ~${fmt(m.alvo)} kcal</span></div>`).join("");
+    $("#pantry").innerHTML = D.despensa.map((p) => `<span>${esc(p)}</span>`).join("");
+    $("#rules").innerHTML = D.regras.map(([t, s]) => `<div class="rule"><div><b>${esc(t)}</b><span>${esc(s)}</span></div></div>`).join("");
+  }
+
+  /* ---- Navegação ---- */
+  function showTab(tab) {
+    document.querySelectorAll("[data-view]").forEach((v) => (v.hidden = v.id !== "v-" + tab));
+    document.querySelectorAll("nav.tabs button").forEach((b) => {
+      if (b.dataset.tab === tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+    window.scrollTo(0, 0);
+    try { history.replaceState(null, "", "#" + tab); } catch (e) {}
+  }
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("button, [data-close]"); if (!t) return;
+    if (t.dataset.tab) return showTab(t.dataset.tab);
+    if (t.hasAttribute("data-close")) return closeSheet();
+    if (t.id === "sheet-back") return openMeal(t.dataset.meal);
+    if (t.id === "gravacao") { gravacao = !gravacao; persist(); return renderToday(); }
+    if (t.dataset.check) return toggleMeal(t.dataset.check);
+    if (t.dataset.openMeal) return openMeal(t.dataset.openMeal);
+    if (t.dataset.openRecipe) return openRecipe(t.dataset.openRecipe, t.dataset.fromMeal || null);
+    if (t.dataset.filter) { filter = t.dataset.filter; return renderRecipes(); }
+    if (t.dataset.eat) {
+      const r = recipes[t.dataset.eat];
+      if (eaten[r.refeicao] === r.id) delete eaten[r.refeicao]; else eaten[r.refeicao] = r.id;
+      persist(); renderToday(); closeSheet();
+    }
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });
+
+  renderToday(); renderRecipes(); renderWeek(); renderGoals();
+  const start = (location.hash || "").slice(1);
+  if (["hoje", "receitas", "semana", "metas"].includes(start)) showTab(start);
+  // Atualiza o destaque "Próxima" a cada minuto e vira o dia à meia-noite.
+  let currentDay = dayKey();
+  setInterval(() => {
+    if (dayKey() !== currentDay) { currentDay = dayKey(); eaten = load("dieta:dia:" + currentDay, {}); gravacao = load("dieta:grav:" + currentDay, false); }
+    renderToday();
+  }, 60000);
+})();
+</script>
+</body>
+</html>
