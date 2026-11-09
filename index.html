@@ -232,6 +232,19 @@ body.voice #speedGrp { display: none; }
 .lesson .prep { font-size: 13px; color: var(--tally); }
 .lesson.done .t { color: var(--muted); text-decoration: line-through; }
 .lesson.last { border-color: var(--fg); }
+.lesson.rec { background: #0d1f14; border-color: #1f5132; }
+.lesson.rec .tick { border-right-color: #1f5132; cursor: default; }
+.lesson.rec .tick::before {
+  border-color: #30d158; background: #30d158
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat;
+  border-radius: 50%;
+}
+.lesson.rec .t { color: #8fd8a6; text-decoration: none; }
+.badge { justify-self: start; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; }
+.badge.rec { background: #30d158; color: #000; }
+.badge.rev { background: none; color: #ffd60a; border: 1px solid #ffd60a; }
+.mod h2 .ok { color: #30d158; }
+.mod h2 span:last-child { white-space: nowrap; }
 .tools { display: flex; flex-wrap: wrap; gap: 8px; }
 
 @media (prefers-reduced-motion: reduce) { #bar { transition: none; } #mic.live::before { animation: none; } }
@@ -685,35 +698,41 @@ body.voice #speedGrp { display: none; }
   function renderCourse() {
     if (!cdata) return;
     const L = cdata.lessons;
-    const done = L.filter(l => cst.done[l.id]);
-    const left = L.filter(l => !cst.done[l.id]).reduce((a, l) => a + l.min, 0);
+    const isDone = l => l.rec || cst.done[l.id];
+    const done = L.filter(isDone);
+    const left = L.filter(l => !isDone(l)).reduce((a, l) => a + l.min, 0);
     $('sumCount').textContent = done.length + ' de ' + L.length + ' gravadas';
     $('sumBar').style.width = (done.length / L.length * 100) + '%';
     $('sumTime').textContent = left ? 'Faltam cerca de ' + fmtMin(left) + ' de fala' : 'Todas as aulas gravadas';
     $('hideDone').checked = cst.hide;
     list.textContent = '';
     cdata.mods.forEach((name, mi) => {
-      const ls = L.filter(l => l.mod === mi && !(cst.hide && cst.done[l.id]));
+      const ls = L.filter(l => l.mod === mi && !(cst.hide && isDone(l)));
       if (!ls.length) return;
       const all = L.filter(l => l.mod === mi);
       const box = document.createElement('div'); box.className = 'mod';
       const h = document.createElement('h2');
       const a = document.createElement('span'); a.textContent = (mi && mi < 21 ? 'Módulo ' + mi + ' · ' : '') + name;
-      const b = document.createElement('span'); b.textContent = all.filter(l => cst.done[l.id]).length + '/' + all.length;
+      const nd = all.filter(isDone).length, allRec = all.every(l => l.rec);
+      const b = document.createElement('span'); b.textContent = allRec ? '✓ gravado' : nd + '/' + all.length;
+      if (nd === all.length) b.className = 'ok';
       h.append(a, b); box.appendChild(h);
       for (const l of ls) {
         const row = document.createElement('div');
-        row.className = 'lesson' + (cst.done[l.id] ? ' done' : '') + (cst.last === l.id ? ' last' : '');
+        row.className = 'lesson' + (l.rec ? ' rec' : cst.done[l.id] ? ' done' : '') + (cst.last === l.id ? ' last' : '');
         const tick = document.createElement('button');
         tick.type = 'button'; tick.className = 'tick';
         tick.setAttribute('aria-label', (cst.done[l.id] ? 'Desmarcar ' : 'Marcar como gravada ') + l.id);
-        tick.addEventListener('click', () => { cst.done[l.id] = !cst.done[l.id]; if (!cst.done[l.id]) delete cst.done[l.id]; csave(); renderCourse(); });
+        if (l.rec) { tick.disabled = true; tick.setAttribute('aria-label', l.id + ' já gravada na 1ª etapa'); }
+        else tick.addEventListener('click', () => { cst.done[l.id] = !cst.done[l.id]; if (!cst.done[l.id]) delete cst.done[l.id]; csave(); renderCourse(); });
         const open = document.createElement('button');
         open.type = 'button'; open.className = 'open';
         const t = document.createElement('span'); t.className = 't';
         const id = document.createElement('b'); id.textContent = l.id;
         t.append(id, l.title);
         const m = document.createElement('span'); m.className = 'm'; m.textContent = '~' + String(l.min).replace('.', ',') + ' min';
+        if (l.rec) { const g = document.createElement('span'); g.className = 'badge rec'; g.textContent = '✓ Gravada na 1ª etapa'; open.append(g); }
+        else if (l.rev) { const g = document.createElement('span'); g.className = 'badge rev'; g.textContent = 'Texto revisado'; open.append(g); }
         open.append(t, m);
         if (l.prep) { const p = document.createElement('span'); p.className = 'prep'; p.textContent = 'Separar: ' + l.prep; open.appendChild(p); }
         open.addEventListener('click', () => { cst.last = l.id; csave(); openStage(l.text, l); });
